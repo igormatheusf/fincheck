@@ -13,8 +13,74 @@ datasource db {
 }
 
 model User {
-  id       String @id @db.Uuid
+  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name     String
   email    String @unique
   password String
+
+  financialAccounts FinancialAccount[]
+  categories        Category[]
+  transactions      Transaction[]
+
+  @@map("users")
+}
+
+enum FinancialAccountType {
+  CHECKING
+  INVESTMENT
+  CASH
+
+  @@map("financial_account_type")
+}
+
+model FinancialAccount {
+  id             String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String               @map("user_id") @db.Uuid
+  name           String
+  initialBalance Float                @map("initial_balance")
+  type           FinancialAccountType
+  color          String
+  transactions   Transaction[]
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("financial_accounts")
+}
+
+enum TransationType {
+  INCOME
+  EXPENSE
+  TRANFER
+
+  @@map("transaction_type")
+}
+
+model Category {
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String         @map("user_id") @db.Uuid
+  name         String
+  icon         String
+  type         TransationType
+  transactions Transaction[]
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("categories")
+}
+
+model Transaction {
+  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String         @map("user_id") @db.Uuid
+  financialAccountId String         @map("financial_account_id") @db.Uuid
+  categoryId         String?        @map("category_id") @db.Uuid
+  name               String
+  value              Float
+  date               DateTime
+  type               TransationType
+
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  financialAccount FinancialAccount @relation(fields: [financialAccountId], references: [id], onDelete: Cascade)
+  category         Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@map("transactions")
 }
